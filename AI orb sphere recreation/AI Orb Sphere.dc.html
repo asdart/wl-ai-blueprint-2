@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #ecebe7; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="position: fixed; inset: 0; background: #ecebe7; overflow: hidden;">
+  <canvas ref="{{ canvasRef }}" style="display: block; width: 100%; height: 100%; cursor: grab;"></canvas>
+  <div ref="{{ tooltipRef }}" style="position: absolute; display: none; pointer-events: none; background: rgba(140,150,144,0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: white; padding: 9px 22px; border-radius: 26px; font-size: 17px; font-family: -apple-system, system-ui, sans-serif; font-weight: 400; letter-spacing: 0.01em; white-space: nowrap; transform: translateY(-50%);"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;speed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.1,&quot;min&quot;:0,&quot;max&quot;:0.5,&quot;step&quot;:0.01,&quot;unit&quot;:&quot;rad/s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;tilt&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:-0.42,&quot;min&quot;:-1,&quot;max&quot;:1,&quot;step&quot;:0.02,&quot;unit&quot;:&quot;rad&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;breathe&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Breathing&quot;},&quot;breatheIntensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.2,&quot;min&quot;:0.1,&quot;max&quot;:3,&quot;step&quot;:0.05,&quot;unit&quot;:&quot;×&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Breathing&quot;},&quot;floatIntensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.6,&quot;min&quot;:0,&quot;max&quot;:5,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;×&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Particles&quot;},&quot;pointCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:680,&quot;min&quot;:120,&quot;max&quot;:1000,&quot;step&quot;:20,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Network&quot;},&quot;neighbors&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:12,&quot;min&quot;:2,&quot;max&quot;:16,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Network&quot;},&quot;randomLinks&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:8,&quot;min&quot;:0,&quot;max&quot;:20,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Network&quot;},&quot;hubCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:60,&quot;min&quot;:0,&quot;max&quot;:80,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Network&quot;},&quot;hubLinks&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:50,&quot;min&quot;:0,&quot;max&quot;:80,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Network&quot;},&quot;lineColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#39463e&quot;,&quot;options&quot;:[&quot;#39463e&quot;,&quot;#2a2a2a&quot;,&quot;#2d4a5e&quot;,&quot;#5e3a2d&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Color&quot;},&quot;bg&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#f4f3f0&quot;,&quot;options&quot;:[&quot;#ecebe7&quot;,&quot;#f4f3f0&quot;,&quot;#e6e8e6&quot;,&quot;#1a1c1b&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Color&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.canvasRef  = React.createRef();
+    this.tooltipRef = React.createRef();
+    this._mouse     = null;
+    this._hovered   = -1;
+    this._dragging  = false;
+    this._dragLast  = null;
+    this._hasDragged = false;
+    // quaternion orientation [x, y, z, w]
+    this._quat = [0, 0, 0, 1];
+    // angular velocity for inertia [wx around worldX, wy around worldY] rad/s
+    this._velX = 0; this._velY = 0;
+    // current auto-spin speed (rad/s)
+    this._spinSpeed  = 0;
+    this._breatheRate = 1;
+    this._breatheTime = 0;
+    this._hoverT     = 0;
+    this._prevHovIdx = -1;
+    this._prevPtCfg  = null;
+    this._last       = 0;
+  }
+
+  renderVals() {
+    return { canvasRef: this.canvasRef, tooltipRef: this.tooltipRef };
+  }
+
+  // ─── quaternion helpers ───────────────────────────────────────────────────
+  qMul(a, b) {
+    return [
+      a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+      a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+      a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+      a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2],
+    ];
+  }
+  qNorm(q) {
+    const l = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+    return [q[0]/l, q[1]/l, q[2]/l, q[3]/l];
+  }
+  // rotation around axis (ax,ay,az) by angle (radians)
+  qAxisAngle(ax, ay, az, angle) {
+    const s = Math.sin(angle * 0.5);
+    return [ax*s, ay*s, az*s, Math.cos(angle * 0.5)];
+  }
+  // rotate vector v by quaternion q
+  qRot(q, vx, vy, vz) {
+    const [qx, qy, qz, qw] = q;
+    const tx = 2*(qy*vz - qz*vy);
+    const ty = 2*(qz*vx - qx*vz);
+    const tz = 2*(qx*vy - qy*vx);
+    return [
+      vx + qw*tx + qy*tz - qz*ty,
+      vy + qw*ty + qz*tx - qx*tz,
+      vz + qw*tz + qx*ty - qy*tx,
+    ];
+  }
+
+  componentDidMount() {
+    const c = this.cfg();
+    this._spinSpeed = c.speed;
+    // initialise orientation with tilt around world X
+    this._quat = this.qNorm(this.qAxisAngle(1, 0, 0, c.tilt));
+    this._prevTilt = c.tilt;
+    this.buildGeometry();
+    this.setupCanvas();
+    this._last = performance.now();
+    this._loop = this._loop.bind(this);
+    this._raf  = requestAnimationFrame(this._loop);
+  }
+
+  componentWillUnmount() {
+    cancelAnimationFrame(this._raf);
+    window.removeEventListener('resize', this._onResize);
+  }
+
+  cfg() {
+    return {
+      pointCount:       this.props.pointCount       ?? 680,
+      neighbors:        this.props.neighbors         ?? 12,
+      hubCount:         this.props.hubCount          ?? 60,
+      hubLinks:         this.props.hubLinks          ?? 50,
+      randomLinks:      this.props.randomLinks       ?? 8,
+      breathe:          this.props.breathe           ?? true,
+      breatheIntensity: this.props.breatheIntensity  ?? 1,
+      floatIntensity:   this.props.floatIntensity    ?? 1,
+      speed:            this.props.speed             ?? 0.10,
+      tilt:             this.props.tilt              ?? -0.42,
+      lineColor:        this.props.lineColor         ?? '#39463e',
+      bg:               this.props.bg               ?? '#ecebe7',
+    };
+  }
+
+  buildGeometry() {
+    const c = this.cfg();
+    const N = c.pointCount;
+    const pts = [];
+    const gold = Math.PI * (3 - Math.sqrt(5));
+    let seed = 1337;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+
+    for (let i = 0; i < N; i++) {
+      const y  = 1 - (i / (N - 1)) * 2;
+      const r  = Math.sqrt(Math.max(0, 1 - y * y));
+      const th = gold * i;
+      let x  = Math.cos(th) * r + (rnd() - 0.5) * 0.09;
+      let yy = y              + (rnd() - 0.5) * 0.09;
+      let z  = Math.sin(th) * r + (rnd() - 0.5) * 0.09;
+      const l = Math.hypot(x, yy, z) || 1;
+      pts.push({
+        x: x/l, y: yy/l, z: z/l, deg: 0,
+        floatPhase: rnd() * Math.PI * 2,
+        floatFreq:  0.18 + rnd() * 0.38,
+        floatAmp:   0.022 + rnd() * 0.038,
+      });
+    }
+
+    const LABELS = ['Lupus','Cancer','Diabetes','Neuron','Synapse','Cortex','Genome','Protein','RNA','DNA','Antibody','Enzyme','Receptor','Cytokine','Apoptosis','Kinase','Ligand','Ribosome','Telomere','Mutation','Allele','Pathogen','Catalyst','Thyroid','Insulin','Serotonin','Dopamine','Glioma','Lymphoma','Melanoma','Collagen','Myosin','Actin','Keratin','Tubulin','Hemoglobin','Albumin','Fibrinogen','Meiosis','Mitosis','Helicase','Plasmid','Oxidase','Ferritin','Elastin','Laminin','Cortisol','Globulin','Fibrin','Acylase'];
+    for (let i = 0; i < N; i++) pts[i].label = LABELS[i % LABELS.length];
+
+    const edgeSet = new Set();
+    const edges   = [];
+    const addEdge = (a, b) => {
+      if (a === b || a >= N || b >= N) return;
+      const key = a < b ? a * 100000 + b : b * 100000 + a;
+      if (edgeSet.has(key)) return;
+      edgeSet.add(key);
+      edges.push([a, b]);
+      pts[a].deg++; pts[b].deg++;
+    };
+
+    for (let i = 0; i < N; i++) {
+      const di = [];
+      for (let j = 0; j < N; j++) {
+        if (i === j) continue;
+        const dx = pts[i].x-pts[j].x, dy = pts[i].y-pts[j].y, dz = pts[i].z-pts[j].z;
+        di.push([dx*dx+dy*dy+dz*dz, j]);
+      }
+      di.sort((a,b) => a[0]-b[0]);
+      for (let k = 0; k < c.neighbors; k++) addEdge(i, di[k][1]);
+    }
+    for (let i = 0; i < N; i++)
+      for (let l = 0; l < c.randomLinks; l++) addEdge(i, Math.floor(rnd()*N));
+    for (let h = 0; h < c.hubCount; h++) {
+      const hub = Math.floor(rnd()*N);
+      for (let l = 0; l < c.hubLinks; l++) addEdge(hub, Math.floor(rnd()*N));
+    }
+
+    this.pts   = pts;
+    this.edges = edges;
+  }
+
+  setupCanvas() {
+    const canvas = this.canvasRef.current;
+    this.ctx = canvas.getContext('2d');
+    this._onResize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      canvas.width  = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this._w = w; this._h = h;
+    };
+    this._onResize();
+    window.addEventListener('resize', this._onResize);
+
+    const applyDrag = (x, y) => {
+      const scale  = Math.PI / Math.min(this._w, this._h);
+      const dAngle =  (x - this._dragLast.x) * scale * 2.2; // horizontal → world Y
+      const dTilt  =  (y - this._dragLast.y) * scale * 1.6; // vertical   → world X
+      // compose: rotate around world Y then world X (left-multiply = world-space)
+      const dqY = this.qAxisAngle(0, 1, 0, dAngle);
+      const dqX = this.qAxisAngle(1, 0, 0, dTilt);
+      this._quat = this.qNorm(this.qMul(dqX, this.qMul(dqY, this._quat)));
+      // smooth velocity (EMA, per-frame deltas)
+      const sm = 0.55;
+      this._velY = this._velY * sm + dAngle * (1 - sm);
+      this._velX = this._velX * sm + dTilt  * (1 - sm);
+      this._dragLast = { x, y };
+      this._mouse = null;
+    };
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      if (this._dragging) { applyDrag(x, y); }
+      else { this._mouse = { x, y }; }
+    });
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      this._dragging   = true;
+      this._hasDragged = true;
+      this._velX = 0; this._velY = 0;
+      this._dragLast = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      this._mouse = null;
+      canvas.style.cursor = 'grabbing';
+    });
+    canvas.addEventListener('mouseup', () => {
+      this._dragging = false;
+      // scale per-frame EMA velocity → per-second for integrator
+      this._velX *= 60; this._velY *= 60;
+      canvas.style.cursor = 'grab';
+    });
+    canvas.addEventListener('mouseleave', () => {
+      this._dragging = false;
+      this._mouse    = null;
+      this._hovered  = -1;
+      this._velX *= 60; this._velY *= 60;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const t = e.touches[0], rect = canvas.getBoundingClientRect();
+      this._dragging   = true;
+      this._hasDragged = true;
+      this._velX = 0; this._velY = 0;
+      this._dragLast = { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      this._mouse = null;
+    }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const t = e.touches[0], rect = canvas.getBoundingClientRect();
+      applyDrag(t.clientX - rect.left, t.clientY - rect.top);
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => {
+      this._dragging = false;
+      this._velX *= 60; this._velY *= 60;
+    });
+  }
+
+  _loop(now) {
+    const c  = this.cfg();
+    const dt = Math.min(0.05, (now - this._last) / 1000);
+    this._last = now;
+
+    // rebuild geometry when network params change
+    const ptKey = [c.pointCount, c.neighbors, c.randomLinks, c.hubCount, c.hubLinks].join(',');
+    if (ptKey !== this._prevPtCfg) { this._prevPtCfg = ptKey; this.buildGeometry(); }
+
+    // tilt prop change (before user drags)
+    if (!this._hasDragged && c.tilt !== this._prevTilt) {
+      this._quat     = this.qNorm(this.qAxisAngle(1, 0, 0, c.tilt));
+      this._prevTilt = c.tilt;
+    }
+
+    const paused = (this._hovered >= 0 && this._mouse) || this._dragging;
+    const k      = 1 - Math.exp(-dt * 3.5);
+
+    // auto-spin: compose small world-Y rotation each frame
+    this._spinSpeed += ((paused ? 0 : c.speed) - this._spinSpeed) * k;
+    if (Math.abs(this._spinSpeed) > 1e-6) {
+      const dqSpin = this.qAxisAngle(0, 1, 0, this._spinSpeed * dt);
+      this._quat   = this.qNorm(this.qMul(dqSpin, this._quat));
+    }
+
+    // inertia after drag release
+    this._breatheRate += ((paused ? 0 : 1) - this._breatheRate) * k;
+    if (!this._dragging && (Math.abs(this._velX) > 0.001 || Math.abs(this._velY) > 0.001)) {
+      const speed = Math.hypot(this._velX, this._velY);
+      const dqI   = this.qAxisAngle(this._velX/speed, this._velY/speed, 0, speed * dt);
+      this._quat  = this.qNorm(this.qMul(dqI, this._quat));
+      const decay = Math.exp(-dt * 4.5);
+      this._velX *= decay; this._velY *= decay;
+    }
+
+    this._breatheTime += dt * this._breatheRate;
+    this.draw(c, dt);
+    this._raf = requestAnimationFrame(this._loop);
+  }
+
+  draw(c, dt) {
+    const ctx = this.ctx;
+    if (!ctx || !this.pts) return;
+    const W = this._w, H = this._h;
+    if (!W || !H) return;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = c.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // breathing scale
+    let bScale = 1;
+    if (c.breathe) {
+      const bt = this._breatheTime, bi = c.breatheIntensity;
+      bScale = 1
+        + bi * 0.038 * Math.sin(bt * 0.38 * Math.PI * 2)
+        + bi * 0.024 * Math.sin(bt * 0.67 * Math.PI * 2 + 2.1)
+        + bi * 0.018 * Math.sin(bt * 1.09 * Math.PI * 2 + 1.4)
+        + bi * 0.011 * Math.sin(bt * 1.77 * Math.PI * 2 + 0.8);
+    }
+
+    const R  = Math.min(W, H) * 0.42 * bScale;
+    const cx = W / 2, cy = H / 2;
+    const q  = this._quat;
+    const bt = this._breatheTime;
+
+    const pts  = this.pts;
+    const N    = pts.length;
+    const proj = new Array(N);
+
+    for (let i = 0; i < N; i++) {
+      const p  = pts[i];
+      const fo = 1 + p.floatAmp * c.floatIntensity * Math.sin(bt * p.floatFreq * Math.PI * 2 + p.floatPhase);
+      const [rx, ry, rz] = this.qRot(q, p.x * fo, p.y * fo, p.z * fo);
+      const pe = 1 / (1.9 - rz * 0.45);
+      proj[i] = {
+        sx: cx + rx * R * pe * 1.6,
+        sy: cy - ry * R * pe * 1.6,  // flip Y: world-up → screen-up
+        d:  Math.max(0, Math.min(1, (rz + 1) * 0.5)),
+      };
+    }
+
+    // edges in depth buckets
+    const BUCKETS = 14;
+    const paths = Array.from({ length: BUCKETS }, () => new Path2D());
+    const edges = this.edges;
+    for (let e = 0; e < edges.length; e++) {
+      const a = proj[edges[e][0]], b = proj[edges[e][1]];
+      if (!a || !b) continue;
+      let bi = Math.floor((a.d + b.d) * 0.5 * BUCKETS);
+      bi = Math.max(0, Math.min(BUCKETS - 1, bi));
+      paths[bi].moveTo(a.sx, a.sy);
+      paths[bi].lineTo(b.sx, b.sy);
+    }
+    ctx.lineWidth   = 0.6;
+    ctx.strokeStyle = c.lineColor;
+    for (let b = 0; b < BUCKETS; b++) {
+      const d = (b + 0.5) / BUCKETS;
+      ctx.globalAlpha = 0.022 + d * d * 0.085;
+      ctx.stroke(paths[b]);
+    }
+
+    // hover detection
+    if (this._mouse) {
+      const { x: mx, y: my } = this._mouse;
+      let bestD = 18, bestIdx = -1;
+      for (let i = 0; i < N; i++) {
+        if (proj[i].d < 0.08) continue;
+        const d = Math.hypot(proj[i].sx - mx, proj[i].sy - my);
+        if (d < bestD) { bestD = d; bestIdx = i; }
+      }
+      this._hovered = bestIdx;
+    }
+    const hovIdx = this._mouse ? this._hovered : -1;
+
+    // hoverT smooth animation
+    const hr = 10;
+    if (hovIdx >= 0) {
+      if (hovIdx !== this._prevHovIdx) this._hoverT = 0;
+      this._hoverT = Math.min(1, this._hoverT + hr * (dt || 0.016));
+    } else {
+      this._hoverT = Math.max(0, this._hoverT - hr * (dt || 0.016));
+    }
+    this._prevHovIdx = hovIdx >= 0 ? hovIdx : this._prevHovIdx;
+
+    if (this.canvasRef.current)
+      this.canvasRef.current.style.cursor = hovIdx >= 0 ? 'pointer' : (this._dragging ? 'grabbing' : 'grab');
+
+    // nodes
+    ctx.fillStyle = c.lineColor;
+    for (let i = 0; i < N; i++) {
+      if (i === hovIdx) continue;
+      const pr    = proj[i];
+      const isHub = pts[i].deg > 14;
+      const r     = (isHub ? 1.6 : 0.7) * (0.55 + pr.d * 0.6);
+      ctx.globalAlpha = (isHub ? 0.5 : 0.14) * (0.3 + pr.d * 0.7);
+      ctx.beginPath();
+      ctx.arc(pr.sx, pr.sy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // hovered node with smooth grow
+    const animIdx = hovIdx >= 0 ? hovIdx : this._prevHovIdx;
+    if (animIdx >= 0 && animIdx < N && this._hoverT > 0) {
+      const pr   = proj[animIdx];
+      const t    = this._hoverT * this._hoverT * (3 - 2 * this._hoverT);
+      const baseR = (pts[animIdx].deg > 14 ? 1.6 : 0.7) * (0.55 + pr.d * 0.6);
+      ctx.globalAlpha = 0.3 + 0.6 * t;
+      ctx.fillStyle   = c.lineColor;
+      ctx.beginPath();
+      ctx.arc(pr.sx, pr.sy, baseR + (5.5 - baseR) * t, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // tooltip
+    const tip = this.tooltipRef && this.tooltipRef.current;
+    if (tip) {
+      if (hovIdx >= 0) {
+        const pr = proj[hovIdx];
+        tip.textContent = pts[hovIdx].label;
+        tip.style.left  = (pr.sx + 16) + 'px';
+        tip.style.top   = pr.sy + 'px';
+        tip.style.display = 'block';
+      } else {
+        tip.style.display = 'none';
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>

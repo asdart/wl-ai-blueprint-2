@@ -1,0 +1,268 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* two-stage scroll: rest points at the top, the globe-centered position, and
+     the breakdown. proximity keeps long breakdown scrolling free. */
+  scroll-snap-type: y proximity;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+/* ---------- product button (Improve your AI) ---------- */
+/* background-image can't be animated, so hover/active overlays live on
+   pseudo-elements whose opacity transitions smoothly instead. */
+.product-button {
+  background-image: linear-gradient(180deg, #737373 0%, #404040 100%);
+}
+.product-button::before,
+.product-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.18s ease;
+}
+/* hover: 20% white overlay — button lightens */
+.product-button::before {
+  background: rgba(255, 255, 255, 0.2);
+}
+/* active/click: 60% dark overlay — button darkens */
+.product-button::after {
+  background: rgba(26, 26, 26, 0.6);
+}
+.product-button:hover::before {
+  opacity: 1;
+}
+.product-button:active::after {
+  opacity: 1;
+}
+
+/* light variant — subtle neutral gradient with dark label */
+.product-button-light {
+  background-image: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+}
+.product-button-light::before,
+.product-button-light::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.18s ease;
+}
+/* hover: slight darkening */
+.product-button-light::before {
+  background: rgba(26, 26, 26, 0.04);
+}
+/* active/click: stronger darkening */
+.product-button-light::after {
+  background: rgba(26, 26, 26, 0.09);
+}
+.product-button-light:hover::before {
+  opacity: 1;
+}
+.product-button-light:active::after {
+  opacity: 1;
+}
+
+/* ---------- next steps avatar stack hover ---------- */
+/* base z-index is set inline per avatar to control overlap order; !important
+   is needed on hover so the lifted avatar can rise above its neighbors. */
+.avatar-lift {
+  transition: transform 0.3s ease-out;
+}
+.avatar-lift:hover {
+  transform: translateY(-8px);
+  z-index: 20 !important;
+}
+
+/* ---------- intro load animations ---------- */
+/* sphere is born small in the screen center, holds ~3s, then slowly grows +
+   travels down to its resting bottom-dome position. total 5.2s → hold ends
+   ~3.1s (60%), grows over the last ~2.1s. translateY moves the sphere center
+   from the screen center down to ~24px above the bottom (original dome). */
+@keyframes orbGrowIn {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.18);
+  }
+  3% {
+    opacity: 1;
+    transform: translateY(0) scale(0.18);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(0.18);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(calc(50vh - 24px)) scale(1);
+  }
+}
+
+@keyframes riseFade {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* opacity-only fade — used where the element must NOT retain a transform, since
+   a transformed ancestor breaks descendants' backdrop-filter (the blur would
+   have no backdrop to sample). */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes wordReveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.5em);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.orb-anim {
+  animation: orbGrowIn 5.2s cubic-bezier(0.33, 0, 0.2, 1) 0.1s both;
+}
+
+/* "Loading your Ai..." caption: visible while the orb is small, fades out as
+   the orb begins to grow (~3.2s). shares the orb's 0.1s start delay. */
+@keyframes loadingCopyLife {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  83% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.loading-copy {
+  animation: loadingCopyLife 3.6s ease 0.1s both;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    rgba(26, 26, 26, 0.28) 0%,
+    rgba(26, 26, 26, 0.28) 40%,
+    rgba(26, 26, 26, 0.85) 50%,
+    rgba(26, 26, 26, 0.28) 60%,
+    rgba(26, 26, 26, 0.28) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer 1.8s linear infinite;
+}
+
+/* stagger the metric cards one after another */
+.cards-in > * {
+  animation: riseFade 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.cards-in:hover > .metric-card:not(:hover) {
+  opacity: 0.85;
+}
+.cards-in > *:nth-child(1) {
+  animation-delay: 5.45s;
+}
+.cards-in > *:nth-child(2) {
+  animation-delay: 5.57s;
+}
+.cards-in > *:nth-child(3) {
+  animation-delay: 5.69s;
+}
+.cards-in > *:nth-child(4) {
+  animation-delay: 5.81s;
+}
+.cards-in > *:nth-child(5) {
+  animation-delay: 5.93s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+  }
+  .cards-in > *,
+  [data-intro] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .metric-card {
+    transition: none !important;
+  }
+  .cards-in:hover > .metric-card:not(:hover) {
+    opacity: 1;
+  }
+  /* keep the orb at its resting bottom-dome position without animating */
+  .orb-anim {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: translateY(calc(50vh - 24px)) scale(1) !important;
+  }
+  /* no small-state loading caption when motion is reduced */
+  .loading-copy {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  .shimmer-text {
+    animation: none !important;
+  }
+}
