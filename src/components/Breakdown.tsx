@@ -7,92 +7,159 @@ const asset = (name: string) => `/assets/${name}`;
 const ROW_STAGGER = 90;
 
 const CARD =
-  "w-[480px] max-w-[calc(100%-40px)] rounded-[24px] border border-[rgba(26,26,26,0.09)] bg-[rgba(255,255,255,0.6)] backdrop-blur-[10px] transition-[opacity,transform] duration-700 ease-out";
+  "w-[480px] max-w-[calc(100%-40px)] rounded-[24px] border border-[rgba(26,26,26,0.09)] bg-[rgba(255,255,255,0.6)] backdrop-blur-[10px] transition-opacity duration-700 ease-out";
 const CARD_TITLE = "text-base font-medium leading-6 text-[#1a1a1a]";
 const CARD_SUB = "text-sm leading-5 text-[rgba(26,26,26,0.6)]";
 
+/* opacity-only reveal — a transform on the card (or any ancestor) makes
+   backdrop-filter sample an empty backdrop, so the frosted glass disappears. */
 const revealStyle = (shown: boolean): React.CSSProperties => ({
   opacity: shown ? 1 : 0,
-  transform: shown ? "none" : "translateY(28px)",
 });
 
 /* ---------- Overall readiness ---------- */
 
-function Ring({
-  value,
-  active,
-  delay,
-}: {
-  value: number;
-  active: boolean;
-  delay: number;
-}) {
-  const v = useCountUp(value, { active, delay, duration: 1100 });
-  const r = 34;
+function ScoreRing({ active }: { active: boolean }) {
+  const pct = useCountUp(97, { active, delay: 120, duration: 1100 });
+  const r = 52;
   const c = 2 * Math.PI * r;
-  const offset = c * (1 - v / 100);
+  const offset = c * (1 - pct / 100);
   return (
-    <div className="relative size-20 shrink-0">
-      <svg viewBox="0 0 80 80" className="size-full -rotate-90">
+    <div className="relative size-[120px] shrink-0">
+      <svg viewBox="0 0 120 120" className="size-full -rotate-90">
         <circle
-          cx="40"
-          cy="40"
+          cx="60"
+          cy="60"
           r={r}
           fill="none"
           stroke="rgba(16,104,68,0.1)"
-          strokeWidth="8"
+          strokeWidth="9"
         />
         <circle
-          cx="40"
-          cy="40"
+          cx="60"
+          cy="60"
           r={r}
           fill="none"
           stroke="#18c280"
-          strokeWidth="8"
+          strokeWidth="9"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
         />
       </svg>
-      <img
-        src={asset("rocket.svg")}
-        alt=""
-        className="absolute left-1/2 top-1/2 size-6 -translate-x-1/2 -translate-y-1/2"
-      />
+      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-baseline whitespace-nowrap">
+        <span className="-mr-0.5 text-[32px] font-semibold leading-10 text-[rgba(26,26,26,0.8)]">
+          {Math.round(pct)}
+        </span>
+        <span className="text-sm font-medium leading-5 tracking-[-0.4px] text-[rgba(26,26,26,0.6)]">
+          /100
+        </span>
+      </div>
     </div>
   );
 }
 
-function OverallCard({ gate }: { gate: boolean }) {
+const howRows: {
+  icon: string;
+  title: string;
+  sub: string;
+  value?: string;
+  pill: string;
+}[] = [
+  {
+    icon: asset("how-upgrade.svg"),
+    title: "Overall readiness",
+    sub: "5 of 5 categories trained",
+    value: "94%",
+    pill: "Strong",
+  },
+  {
+    icon: asset("how-chat.svg"),
+    title: "Tester engagement",
+    sub: "11 avg messages vs. 3 industry avg",
+    value: "4x",
+    pill: "Above avg",
+  },
+  {
+    icon: asset("how-search.svg"),
+    title: "Kodara review",
+    sub: "Voice, method, and safety checks",
+    pill: "Passed",
+  },
+];
+
+function HowRow({
+  icon,
+  title,
+  sub,
+  value,
+  pill,
+}: (typeof howRows)[number]) {
+  return (
+    <div className="flex w-full items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center rounded-[12px] bg-[rgba(26,26,26,0.04)] p-3">
+          <img src={icon} alt="" className="size-5 shrink-0" />
+        </div>
+        <div className="flex flex-col items-start justify-center">
+          <p className="whitespace-nowrap text-base font-medium leading-6 text-[rgba(26,26,26,0.8)]">
+            {title}
+          </p>
+          <p className="whitespace-nowrap text-sm font-medium leading-5 text-[rgba(26,26,26,0.6)]">
+            {sub}
+          </p>
+        </div>
+      </div>
+      <div className="flex min-w-px max-w-[256px] flex-1 items-center justify-end">
+        <div className="flex items-center justify-center gap-2">
+          {value && (
+            <p className="whitespace-nowrap text-base font-medium leading-6 text-[#106844]">
+              {value}
+            </p>
+          )}
+          <div className="flex items-center rounded-[24px] bg-[rgba(16,104,68,0.06)] px-2 py-0.5">
+            <span className="whitespace-nowrap text-sm font-medium leading-5 tracking-[-0.15px] text-[#106844]">
+              {pill}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function OverallCard({ gate }: { gate: boolean }) {
   const { ref, inView } = useInView<HTMLDivElement>();
   const show = gate && inView;
-  const pct = useCountUp(97, { active: show, delay: 0, duration: 1100 });
   return (
     <div
       ref={ref}
-      className={`${CARD} flex flex-col items-center gap-3 overflow-hidden p-4`}
+      className={`${CARD} flex flex-col items-center gap-6 p-6`}
       style={revealStyle(show)}
     >
       <div className="flex w-full flex-col gap-0.5">
         <p className={CARD_TITLE}>Overall readiness</p>
         <p className={CARD_SUB}>
-          In 47 tests, your AI matched your voice and method. Two categories need
-          more training before we&apos;d recommend going live.
+          In 47 tests, your AI matched your voice and method across all 5 areas.
+          It&apos;s ready for your clients.
         </p>
       </div>
-      <div className="relative h-32 w-full overflow-hidden rounded-[16px] bg-[rgba(26,26,26,0.04)]">
-        <div className="absolute left-6 top-6">
-          <Ring value={97} active={show} delay={120} />
+      <div
+        className="flex h-[168px] w-full items-start justify-center rounded-[16px] p-6"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(24,194,128,0) 0%, rgba(24,194,128,0.1) 100%), linear-gradient(90deg, rgba(26,26,26,0.04) 0%, rgba(26,26,26,0.04) 100%)",
+        }}
+      >
+        <ScoreRing active={show} />
+      </div>
+      <div className="flex w-full flex-col gap-3">
+        <p className={CARD_TITLE}>How we got here</p>
+        <div className="flex w-full flex-col gap-3">
+          {howRows.map((row) => (
+            <HowRow key={row.title} {...row} />
+          ))}
         </div>
-        <div className="absolute right-6 top-5 flex items-center gap-1">
-          <img src={asset("rocket.svg")} alt="" className="size-5" />
-          <span className="text-sm font-medium leading-5 tracking-[-0.15px] text-[#106844]">
-            Ready
-          </span>
-        </div>
-        <p className="absolute bottom-3 right-8 text-[48px] font-medium leading-[56px] tracking-[0.5px] text-[rgba(26,26,26,0.8)]">
-          {Math.round(pct)}%
-        </p>
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { CoverageCard, TestsCard } from "./Breakdown";
-import { useCountUp, useInView } from "./anim";
+import { CoverageCard, OverallCard, TestsCard } from "./Breakdown";
 
 const asset = (name: string) => `/assets/${name}`;
 
@@ -105,77 +104,6 @@ function TabBar({
   );
 }
 
-/* ---------- Score window (Overall readiness) ---------- */
-
-function ScoreRing({ active }: { active: boolean }) {
-  const pct = useCountUp(97, { active, delay: 120, duration: 1100 });
-  const r = 52;
-  const c = 2 * Math.PI * r;
-  const offset = c * (1 - pct / 100);
-  return (
-    <div className="relative size-[120px] shrink-0">
-      <svg viewBox="0 0 120 120" className="size-full -rotate-90">
-        <circle
-          cx="60"
-          cy="60"
-          r={r}
-          fill="none"
-          stroke="rgba(16,104,68,0.1)"
-          strokeWidth="9"
-        />
-        <circle
-          cx="60"
-          cy="60"
-          r={r}
-          fill="none"
-          stroke="#18c280"
-          strokeWidth="9"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-        />
-      </svg>
-      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[32px] font-semibold leading-10 text-[rgba(26,26,26,0.8)]">
-        {Math.round(pct)}%
-      </span>
-    </div>
-  );
-}
-
-function ScoreWindow({ gate }: { gate: boolean }) {
-  const { ref, inView } = useInView<HTMLDivElement>();
-  const show = gate && inView;
-  return (
-    <div
-      ref={ref}
-      className="flex w-[476px] max-w-[calc(100%-40px)] flex-col items-center gap-6 rounded-[24px] border border-[rgba(26,26,26,0.09)] bg-[rgba(255,255,255,0.6)] p-6 backdrop-blur-[10px] transition-[opacity,transform] duration-700 ease-out"
-      style={{
-        opacity: show ? 1 : 0,
-        transform: show ? "none" : "translateY(28px)",
-      }}
-    >
-      <div className="flex w-full flex-col gap-0.5">
-        <p className="text-base font-medium leading-6 text-[#1a1a1a]">
-          Overall readiness
-        </p>
-        <p className="text-sm font-medium leading-5 text-[rgba(26,26,26,0.6)]">
-          In 47 tests, your AI matched your voice and method. Two categories need
-          more training before we&apos;d recommend going live.
-        </p>
-      </div>
-      <div
-        className="flex h-[168px] w-full items-center justify-center rounded-[16px] p-6"
-        style={{
-          backgroundImage:
-            "linear-gradient(180deg, rgba(24,194,128,0) 0%, rgba(24,194,128,0.1) 100%), linear-gradient(90deg, rgba(26,26,26,0.04) 0%, rgba(26,26,26,0.04) 100%)",
-        }}
-      >
-        <ScoreRing active={show} />
-      </div>
-    </div>
-  );
-}
-
 /* ---------- tab view ---------- */
 
 export default function TabView({ gate = true }: { gate?: boolean }) {
@@ -185,7 +113,7 @@ export default function TabView({ gate = true }: { gate?: boolean }) {
       <TabBar active={active} onChange={setActive} />
       {/* remount on tab change so the in-window count-ups / reveals replay */}
       <div key={active} className="flex w-full justify-center">
-        {active === "score" && <ScoreWindow gate={gate} />}
+        {active === "score" && <OverallCard gate={gate} />}
         {active === "coverage" && <CoverageCard gate={gate} />}
         {active === "tests" && <TestsCard gate={gate} />}
       </div>

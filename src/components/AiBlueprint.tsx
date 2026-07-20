@@ -144,7 +144,11 @@ export default function AiBlueprint() {
             <br />
             deferring appropriately.
           </p>
-          <div data-intro className="mt-2" style={intro(6.8)}>
+          <div
+            data-intro
+            className="mt-2 flex items-center justify-center gap-2"
+            style={intro(6.8)}
+          >
             <button
               type="button"
               onClick={() => setShareOpen(true)}
@@ -161,6 +165,25 @@ export default function AiBlueprint() {
                 <span className="flex items-center justify-center px-1">
                   <span className="whitespace-nowrap text-center text-sm font-medium tracking-[-0.15px] text-[rgba(255,255,255,0.8)]">
                     Send to clients
+                  </span>
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="product-button-light relative flex items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(26,26,26,0.09)] px-2.5 py-2"
+            >
+              <span className="relative z-10 flex items-center">
+                <span className="size-5 shrink-0">
+                  <img
+                    src={asset("search-icon.svg")}
+                    alt=""
+                    className="block size-full"
+                  />
+                </span>
+                <span className="flex items-center justify-center px-1">
+                  <span className="whitespace-nowrap text-center text-sm font-medium tracking-[-0.15px] text-[rgba(26,26,26,0.6)]">
+                    Keep training
                   </span>
                 </span>
               </span>
