@@ -48,10 +48,97 @@ const intro = (delay: number, name = "riseFade", duration = 0.55) => ({
   animation: `${name} ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
 });
 
+/* the readiness "paths" the dev team can preview. "happy" is the shipping
+   experience (score >= 80); "needs-improvement" previews the below-80 state
+   (amber theme, reordered CTAs, different tag copy). */
+type Path = "happy" | "needs-improvement";
+
+/* ---------- hero CTA ---------- */
+/* "dark" = filled neutral gradient (primary), "light" = bordered (secondary).
+   the icon variant is chosen by the caller to match the button's fill. */
+function Cta({
+  variant,
+  icon,
+  label,
+  onClick,
+}: {
+  variant: "dark" | "light";
+  icon: string;
+  label: string;
+  onClick?: () => void;
+}) {
+  const dark = variant === "dark";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        dark
+          ? "product-button relative flex items-center justify-center overflow-hidden rounded-[10px] px-2.5 py-2 shadow-[inset_0px_1px_0.5px_0px_rgba(255,255,255,0.28)]"
+          : "product-button-light relative flex items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(26,26,26,0.09)] px-2.5 py-2"
+      }
+    >
+      <span className="relative z-10 flex items-center">
+        <span className="size-5 shrink-0">
+          <img src={asset(icon)} alt="" className="block size-full" />
+        </span>
+        <span className="flex items-center justify-center px-1">
+          <span
+            className={`whitespace-nowrap text-center text-sm font-medium tracking-[-0.15px] ${
+              dark ? "text-[rgba(255,255,255,0.8)]" : "text-[rgba(26,26,26,0.6)]"
+            }`}
+          >
+            {label}
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/* ---------- dev path selector (top-right) ---------- */
+
+function PathSelector({
+  path,
+  onChange,
+}: {
+  path: Path;
+  onChange: (p: Path) => void;
+}) {
+  const options: { id: Path; label: string }[] = [
+    { id: "happy", label: "Happy path" },
+    { id: "needs-improvement", label: "Needs improvement" },
+  ];
+  return (
+    <div className="flex items-center gap-0.5 rounded-[10px] border border-[rgba(26,26,26,0.09)] bg-[rgba(255,255,255,0.6)] p-0.5 backdrop-blur-[10px]">
+      {options.map((opt) => {
+        const isActive = opt.id === path;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            aria-pressed={isActive}
+            className={`whitespace-nowrap rounded-[8px] px-2.5 py-1 text-xs font-medium tracking-[-0.15px] transition-colors ${
+              isActive
+                ? "bg-white text-[rgba(26,26,26,0.8)] shadow-[0_1px_2px_rgba(26,26,26,0.06)]"
+                : "text-[rgba(26,26,26,0.5)] hover:text-[rgba(26,26,26,0.7)]"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ---------- screen ---------- */
 
 export default function AiBlueprint() {
   const [shareOpen, setShareOpen] = useState(false);
+  const [path, setPath] = useState<Path>("happy");
+  const needsImprovement = path === "needs-improvement";
 
   // the tab windows stay dormant until the intro has played, so their first
   // reveal lands in sync with the fade-in rather than behind it.
@@ -66,7 +153,11 @@ export default function AiBlueprint() {
   }, []);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-white font-sans">
+    <div
+      className={`relative min-h-screen w-full overflow-hidden bg-white font-sans ${
+        needsImprovement ? "path-needs-improvement" : ""
+      }`}
+    >
       {/* top bar */}
       <header className="fixed inset-x-0 top-0 z-30 bg-[rgba(255,255,255,0.75)] px-5 pt-7 backdrop-blur-[4px]">
         <div className="flex flex-1 items-center justify-between pb-4">
@@ -77,6 +168,8 @@ export default function AiBlueprint() {
               className="block size-full object-contain"
             />
           </div>
+          {/* dev-facing path preview toggle */}
+          <PathSelector path={path} onChange={setPath} />
         </div>
       </header>
 
@@ -100,10 +193,11 @@ export default function AiBlueprint() {
         </div>
       </div>
 
-      {/* soft green ambient glow anchored to the bottom of the viewport */}
+      {/* soft ambient glow anchored to the bottom of the viewport — green on
+          the happy path, amber when previewing the needs-improvement path */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-0 h-[312px]">
         <img
-          src={asset("bg-fade.svg")}
+          src={asset(needsImprovement ? "bg-fade-amber.svg" : "bg-fade.svg")}
           alt=""
           className="size-full object-cover"
         />
@@ -125,69 +219,76 @@ export default function AiBlueprint() {
         <div className="flex w-[411px] max-w-[calc(100%-40px)] flex-col items-center gap-2 text-center">
           <div
             data-intro
-            className="flex items-center rounded-[24px] bg-[rgba(16,104,68,0.06)] px-1.5 py-0.5"
+            className="flex items-center rounded-[24px] bg-[rgb(var(--accent-deep-rgb)/0.06)] px-1.5 py-0.5"
             style={intro(6.2)}
           >
-            <span className="whitespace-nowrap text-xs font-medium tracking-[-0.15px] text-[#106844]">
-              Ready to publish
+            <span className="whitespace-nowrap text-xs font-medium tracking-[-0.15px] text-[color:rgb(var(--accent-deep-rgb))]">
+              {needsImprovement ? "Needs improvements" : "Ready to publish"}
             </span>
           </div>
           <h1 className="text-[32px] font-medium leading-10 text-[rgba(26,26,26,0.8)]">
-            <WordReveal text="Lucas, you are ready" baseDelay={6.3} />
+            <WordReveal
+              text={
+                needsImprovement
+                  ? "Lucas, almost there"
+                  : "Lucas, you are ready"
+              }
+              baseDelay={6.3}
+            />
           </h1>
           <p
             data-intro
             className="text-sm font-normal leading-5 text-[rgba(26,26,26,0.6)]"
             style={intro(6.7)}
           >
-            In 47 tests, your AI matched your voice and method,
-            <br />
-            deferring appropriately.
+            {needsImprovement ? (
+              <>
+                In 47 tests, your AI matched your voice in most areas.
+                <br />A couple categories need more training.
+              </>
+            ) : (
+              <>
+                In 47 tests, your AI matched your voice and method,
+                <br />
+                deferring appropriately.
+              </>
+            )}
           </p>
           <div
             data-intro
             className="mt-2 flex items-center justify-center gap-2"
             style={intro(6.8)}
           >
-            <button
-              type="button"
-              onClick={() => setShareOpen(true)}
-              className="product-button relative flex items-center justify-center overflow-hidden rounded-[10px] px-2.5 py-2 shadow-[inset_0px_1px_0.5px_0px_rgba(255,255,255,0.28)]"
-            >
-              <span className="relative z-10 flex items-center">
-                <span className="size-5 shrink-0">
-                  <img
-                    src={asset("rocket-white.svg")}
-                    alt=""
-                    className="block size-full"
-                  />
-                </span>
-                <span className="flex items-center justify-center px-1">
-                  <span className="whitespace-nowrap text-center text-sm font-medium tracking-[-0.15px] text-[rgba(255,255,255,0.8)]">
-                    Send to clients
-                  </span>
-                </span>
-              </span>
-            </button>
-            <button
-              type="button"
-              className="product-button-light relative flex items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(26,26,26,0.09)] px-2.5 py-2"
-            >
-              <span className="relative z-10 flex items-center">
-                <span className="size-5 shrink-0">
-                  <img
-                    src={asset("search-icon.svg")}
-                    alt=""
-                    className="block size-full"
-                  />
-                </span>
-                <span className="flex items-center justify-center px-1">
-                  <span className="whitespace-nowrap text-center text-sm font-medium tracking-[-0.15px] text-[rgba(26,26,26,0.6)]">
-                    Keep training
-                  </span>
-                </span>
-              </span>
-            </button>
+            {needsImprovement ? (
+              <>
+                {/* below 80: training is primary, sharing is secondary */}
+                <Cta
+                  variant="dark"
+                  icon="search-icon-white.svg"
+                  label="Keep training"
+                />
+                <Cta
+                  variant="light"
+                  icon="rocket-dark.svg"
+                  label="Send to clients"
+                  onClick={() => setShareOpen(true)}
+                />
+              </>
+            ) : (
+              <>
+                <Cta
+                  variant="dark"
+                  icon="rocket-white.svg"
+                  label="Send to clients"
+                  onClick={() => setShareOpen(true)}
+                />
+                <Cta
+                  variant="light"
+                  icon="search-icon.svg"
+                  label="Keep training"
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -195,7 +296,7 @@ export default function AiBlueprint() {
             this ancestor (a transformed ancestor would break the cards'
             backdrop-filter). */}
         <div className="mt-10 w-full" data-intro style={intro(6.8, "fadeIn")}>
-          <TabView gate={ready} />
+          <TabView gate={ready} needsImprovement={needsImprovement} />
         </div>
       </main>
 

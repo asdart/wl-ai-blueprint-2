@@ -106,16 +106,28 @@ function TabBar({
 
 /* ---------- tab view ---------- */
 
-export default function TabView({ gate = true }: { gate?: boolean }) {
+export default function TabView({
+  gate = true,
+  needsImprovement = false,
+}: {
+  gate?: boolean;
+  needsImprovement?: boolean;
+}) {
   const [active, setActive] = useState<TabId>("score");
   return (
     <div className="flex w-full flex-col items-center gap-6">
       <TabBar active={active} onChange={setActive} />
       {/* remount on tab change so the in-window count-ups / reveals replay */}
       <div key={active} className="flex w-full justify-center">
-        {active === "score" && <OverallCard gate={gate} />}
-        {active === "coverage" && <CoverageCard gate={gate} />}
-        {active === "tests" && <TestsCard gate={gate} />}
+        {active === "score" && (
+          <OverallCard gate={gate} needsImprovement={needsImprovement} />
+        )}
+        {active === "coverage" && (
+          <CoverageCard gate={gate} needsImprovement={needsImprovement} />
+        )}
+        {active === "tests" && (
+          <TestsCard gate={gate} needsImprovement={needsImprovement} />
+        )}
       </div>
     </div>
   );

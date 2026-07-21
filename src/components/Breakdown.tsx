@@ -17,10 +17,36 @@ const revealStyle = (shown: boolean): React.CSSProperties => ({
   opacity: shown ? 1 : 0,
 });
 
+/* full-width dark CTA shown at the bottom of each tab card on the
+   needs-improvement path, nudging the user to keep training. */
+function KeepTrainingButton() {
+  return (
+    <button
+      type="button"
+      className="product-button-light relative flex w-full items-center justify-center overflow-hidden rounded-[12px] border border-[rgba(26,26,26,0.09)] px-3 py-2.5"
+    >
+      <span className="relative z-10 flex items-center">
+        <span className="size-5 shrink-0">
+          <img
+            src={asset("search-icon.svg")}
+            alt=""
+            className="block size-full"
+          />
+        </span>
+        <span className="flex items-center justify-center px-1">
+          <span className="whitespace-nowrap text-center text-base font-medium tracking-[-0.15px] text-[rgba(26,26,26,0.6)]">
+            Keep training
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
 /* ---------- Overall readiness ---------- */
 
-function ScoreRing({ active }: { active: boolean }) {
-  const pct = useCountUp(97, { active, delay: 120, duration: 1100 });
+function ScoreRing({ active, value }: { active: boolean; value: number }) {
+  const pct = useCountUp(value, { active, delay: 120, duration: 1100 });
   const r = 52;
   const c = 2 * Math.PI * r;
   const offset = c * (1 - pct / 100);
@@ -32,7 +58,7 @@ function ScoreRing({ active }: { active: boolean }) {
           cy="60"
           r={r}
           fill="none"
-          stroke="rgba(16,104,68,0.1)"
+          stroke="rgb(var(--accent-deep-rgb) / 0.1)"
           strokeWidth="9"
         />
         <circle
@@ -40,7 +66,7 @@ function ScoreRing({ active }: { active: boolean }) {
           cy="60"
           r={r}
           fill="none"
-          stroke="#18c280"
+          stroke="rgb(var(--accent-rgb))"
           strokeWidth="9"
           strokeLinecap="round"
           strokeDasharray={c}
@@ -59,42 +85,76 @@ function ScoreRing({ active }: { active: boolean }) {
   );
 }
 
-const howRows: {
+type HowRowData = {
   icon: string;
   title: string;
   sub: string;
   value?: string;
   pill: string;
-}[] = [
-  {
-    icon: asset("how-upgrade.svg"),
-    title: "Overall readiness",
-    sub: "5 of 5 categories trained",
-    value: "94%",
-    pill: "Strong",
-  },
-  {
-    icon: asset("how-chat.svg"),
-    title: "Tester engagement",
-    sub: "11 avg messages vs. 3 industry avg",
-    value: "4x",
-    pill: "Above avg",
-  },
-  {
-    icon: asset("how-search.svg"),
-    title: "Kodara review",
-    sub: "Voice, method, and safety checks",
-    pill: "Passed",
-  },
-];
+};
 
-function HowRow({
-  icon,
-  title,
-  sub,
-  value,
-  pill,
-}: (typeof howRows)[number]) {
+type OverallContent = {
+  score: number;
+  sub: string;
+  rows: HowRowData[];
+};
+
+const OVERALL: Record<"happy" | "needsImprovement", OverallContent> = {
+  happy: {
+    score: 97,
+    sub: "In 47 tests, your AI matched your voice and method across all 5 areas. It's ready for your clients.",
+    rows: [
+      {
+        icon: asset("how-upgrade.svg"),
+        title: "Overall readiness",
+        sub: "5 of 5 categories trained",
+        value: "94%",
+        pill: "Strong",
+      },
+      {
+        icon: asset("how-chat.svg"),
+        title: "Tester engagement",
+        sub: "11 avg messages vs. 3 industry avg",
+        value: "4x",
+        pill: "Above avg",
+      },
+      {
+        icon: asset("how-search.svg"),
+        title: "Kodara review",
+        sub: "Voice, method, and safety checks",
+        pill: "Passed",
+      },
+    ],
+  },
+  needsImprovement: {
+    score: 76,
+    sub: "In 47 tests, your AI matched your voice in most areas. Two categories need more training before it's ready for clients.",
+    rows: [
+      {
+        icon: asset("how-upgrade.svg"),
+        title: "Overall readiness",
+        sub: "3 of 5 categories trained",
+        value: "76%",
+        pill: "Needs work",
+      },
+      {
+        icon: asset("how-chat.svg"),
+        title: "Tester engagement",
+        sub: "7 avg messages vs. 3 industry avg",
+        value: "2x",
+        pill: "On track",
+      },
+      {
+        icon: asset("how-search.svg"),
+        title: "Kodara review",
+        sub: "Voice and objections need work",
+        pill: "Review needed",
+      },
+    ],
+  },
+};
+
+function HowRow({ icon, title, sub, value, pill }: HowRowData) {
   return (
     <div className="flex w-full items-center justify-between">
       <div className="flex items-center gap-3">
@@ -113,12 +173,12 @@ function HowRow({
       <div className="flex min-w-px max-w-[256px] flex-1 items-center justify-end">
         <div className="flex items-center justify-center gap-2">
           {value && (
-            <p className="whitespace-nowrap text-base font-medium leading-6 text-[#106844]">
+            <p className="whitespace-nowrap text-base font-medium leading-6 text-[color:rgb(var(--accent-deep-rgb))]">
               {value}
             </p>
           )}
-          <div className="flex items-center rounded-[24px] bg-[rgba(16,104,68,0.06)] px-2 py-0.5">
-            <span className="whitespace-nowrap text-sm font-medium leading-5 tracking-[-0.15px] text-[#106844]">
+          <div className="flex items-center rounded-[24px] bg-[rgb(var(--accent-deep-rgb)/0.06)] px-2 py-0.5">
+            <span className="whitespace-nowrap text-sm font-medium leading-5 tracking-[-0.15px] text-[color:rgb(var(--accent-deep-rgb))]">
               {pill}
             </span>
           </div>
@@ -128,9 +188,16 @@ function HowRow({
   );
 }
 
-export function OverallCard({ gate }: { gate: boolean }) {
+export function OverallCard({
+  gate,
+  needsImprovement = false,
+}: {
+  gate: boolean;
+  needsImprovement?: boolean;
+}) {
   const { ref, inView } = useInView<HTMLDivElement>();
   const show = gate && inView;
+  const content = needsImprovement ? OVERALL.needsImprovement : OVERALL.happy;
   return (
     <div
       ref={ref}
@@ -139,52 +206,68 @@ export function OverallCard({ gate }: { gate: boolean }) {
     >
       <div className="flex w-full flex-col gap-0.5">
         <p className={CARD_TITLE}>Overall readiness</p>
-        <p className={CARD_SUB}>
-          In 47 tests, your AI matched your voice and method across all 5 areas.
-          It&apos;s ready for your clients.
-        </p>
+        <p className={CARD_SUB}>{content.sub}</p>
       </div>
       <div
         className="flex h-[168px] w-full items-start justify-center rounded-[16px] p-6"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, rgba(24,194,128,0) 0%, rgba(24,194,128,0.1) 100%), linear-gradient(90deg, rgba(26,26,26,0.04) 0%, rgba(26,26,26,0.04) 100%)",
+            "linear-gradient(180deg, rgb(var(--accent-rgb) / 0) 0%, rgb(var(--accent-rgb) / 0.1) 100%), linear-gradient(90deg, rgba(26,26,26,0.04) 0%, rgba(26,26,26,0.04) 100%)",
         }}
       >
-        <ScoreRing active={show} />
+        <ScoreRing active={show} value={content.score} />
       </div>
       <div className="flex w-full flex-col gap-3">
         <p className={CARD_TITLE}>How we got here</p>
         <div className="flex w-full flex-col gap-3">
-          {howRows.map((row) => (
+          {content.rows.map((row) => (
             <HowRow key={row.title} {...row} />
           ))}
         </div>
       </div>
+      {needsImprovement && <KeepTrainingButton />}
     </div>
   );
 }
 
 /* ---------- Brain coverage ---------- */
 
-const COVERAGE_OVERALL = 94.2;
+type CoverageContent = {
+  overall: number;
+  rows: { name: string; pct: number; icon: string }[];
+};
 
-const coverageRows: { name: string; pct: number; icon: string }[] = [
-  { name: "Market Fundamentals", pct: 96.3, icon: asset("cov-book.svg") },
-  { name: "Core method", pct: 91.5, icon: asset("cov-knowledge.svg") },
-  { name: "Voice and tone", pct: 93.8, icon: asset("cov-voice.svg") },
-  { name: "Objection handling", pct: 89.1, icon: asset("cov-objection.svg") },
-  { name: "Common questions", pct: 88.4, icon: asset("cov-question.svg") },
-];
+const COVERAGE: Record<"happy" | "needsImprovement", CoverageContent> = {
+  happy: {
+    overall: 94.2,
+    rows: [
+      { name: "Market Fundamentals", pct: 96.3, icon: asset("cov-book.svg") },
+      { name: "Core method", pct: 91.5, icon: asset("cov-knowledge.svg") },
+      { name: "Voice and tone", pct: 93.8, icon: asset("cov-voice.svg") },
+      { name: "Objection handling", pct: 89.1, icon: asset("cov-objection.svg") },
+      { name: "Common questions", pct: 88.4, icon: asset("cov-question.svg") },
+    ],
+  },
+  needsImprovement: {
+    overall: 74.2,
+    rows: [
+      { name: "Market Fundamentals", pct: 88.2, icon: asset("cov-book.svg") },
+      { name: "Core method", pct: 79.4, icon: asset("cov-knowledge.svg") },
+      { name: "Voice and tone", pct: 74.1, icon: asset("cov-voice.svg") },
+      { name: "Objection handling", pct: 66.7, icon: asset("cov-objection.svg") },
+      { name: "Common questions", pct: 62.5, icon: asset("cov-question.svg") },
+    ],
+  },
+};
 
 function CoverageBar({ value }: { value: number }) {
   return (
-    <div className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[rgba(16,104,68,0.06)]">
+    <div className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[rgb(var(--accent-deep-rgb)/0.06)]">
       <div
         className="absolute inset-y-0 left-0 rounded-full border border-[rgba(26,26,26,0.09)]"
         style={{
           width: `${value}%`,
-          background: "#18c280",
+          background: "rgb(var(--accent-rgb))",
           boxShadow: "inset 0px -1px 3px 0px rgba(0,0,0,0.25)",
         }}
       />
@@ -230,10 +313,17 @@ function CoverageRow({
   );
 }
 
-export function CoverageCard({ gate }: { gate: boolean }) {
+export function CoverageCard({
+  gate,
+  needsImprovement = false,
+}: {
+  gate: boolean;
+  needsImprovement?: boolean;
+}) {
   const { ref, inView } = useInView<HTMLDivElement>();
   const show = gate && inView;
-  const overall = useCountUp(COVERAGE_OVERALL, {
+  const content = needsImprovement ? COVERAGE.needsImprovement : COVERAGE.happy;
+  const overall = useCountUp(content.overall, {
     active: show,
     delay: 0,
     duration: 900,
@@ -265,16 +355,17 @@ export function CoverageCard({ gate }: { gate: boolean }) {
       </div>
       {/* detail rows panel */}
       <div className="flex flex-col gap-3 rounded-[16px] bg-[rgba(26,26,26,0.04)] p-3">
-        {coverageRows.map((row, i) => (
+        {content.rows.map((row, i) => (
           <CoverageRow
             key={row.name}
             {...row}
             active={show}
             delay={i * ROW_STAGGER}
-            divider={i < coverageRows.length - 1}
+            divider={i < content.rows.length - 1}
           />
         ))}
       </div>
+      {needsImprovement && <KeepTrainingButton />}
     </div>
   );
 }
@@ -344,18 +435,20 @@ function CompareRow({
         </div>
         <span
           className={`whitespace-nowrap text-sm font-medium leading-5 tracking-[-0.15px] ${
-            high ? "text-[rgba(16,104,68,0.8)]" : "text-[rgba(26,26,26,0.6)]"
+            high
+              ? "text-[color:rgb(var(--accent-deep-rgb)/0.8)]"
+              : "text-[rgba(26,26,26,0.6)]"
           }`}
         >
           {high ? "High" : "Low"}
         </span>
       </div>
-      <div className="relative h-2 w-full overflow-hidden rounded-full bg-[rgba(16,104,68,0.06)]">
+      <div className="relative h-2 w-full overflow-hidden rounded-full bg-[rgb(var(--accent-deep-rgb)/0.06)]">
         <div
           className="absolute inset-y-0 left-0 rounded-full border border-[rgba(26,26,26,0.09)]"
           style={{
             width: `${value}%`,
-            background: high ? "#18c280" : "rgba(26,26,26,0.6)",
+            background: high ? "rgb(var(--accent-rgb))" : "rgba(26,26,26,0.6)",
             boxShadow: "inset 0px -1px 3px 0px rgba(0,0,0,0.25)",
           }}
         />
@@ -387,9 +480,9 @@ function CompareCard({ gate }: { gate: boolean }) {
           />
         ))}
       </div>
-      <div className="flex w-full items-center gap-1.5 rounded-[12px] border border-[rgba(19,134,88,0.08)] bg-[rgba(19,134,88,0.08)] px-2.5 py-2 backdrop-blur-[4px]">
+      <div className="flex w-full items-center gap-1.5 rounded-[12px] border border-[rgb(var(--accent-deep-rgb)/0.08)] bg-[rgb(var(--accent-deep-rgb)/0.08)] px-2.5 py-2 backdrop-blur-[4px]">
         <img src={asset("checkmark.svg")} alt="" className="size-5 shrink-0" />
-        <p className="text-xs font-medium leading-4 tracking-[-0.15px] text-[#16a34a]">
+        <p className="text-xs font-medium leading-4 tracking-[-0.15px] text-[color:rgb(var(--accent-deep-rgb))]">
           AI outperforms off-the-shelf models in voice match and accuracy.
         </p>
       </div>
@@ -399,21 +492,29 @@ function CompareCard({ gate }: { gate: boolean }) {
 
 /* ---------- Test results ---------- */
 
-function AvgMessagesRow({ active }: { active: boolean }) {
-  const value = useCountUp(14, { active, delay: 0, duration: 900 });
-  const fill = useCountUp(90, { active, delay: 0, duration: 1000 });
+function AvgMessagesRow({
+  active,
+  target,
+  fillTarget,
+}: {
+  active: boolean;
+  target: number;
+  fillTarget: number;
+}) {
+  const value = useCountUp(target, { active, delay: 0, duration: 900 });
+  const fill = useCountUp(fillTarget, { active, delay: 0, duration: 1000 });
   return (
     <div className="flex items-center justify-between gap-4 rounded-[12px] bg-[rgba(26,26,26,0.04)] px-5 py-3 backdrop-blur-[10px]">
       <p className="text-base font-medium leading-6 text-[rgba(26,26,26,0.8)]">
         Avg messages
       </p>
       <div className="flex items-center gap-4">
-        <div className="relative h-2 w-[156px] max-w-[156px] overflow-hidden rounded-full bg-[rgba(16,104,68,0.06)]">
+        <div className="relative h-2 w-[156px] max-w-[156px] overflow-hidden rounded-full bg-[rgb(var(--accent-deep-rgb)/0.06)]">
           <div
             className="absolute inset-y-0 left-0 rounded-full border border-[rgba(26,26,26,0.09)]"
             style={{
               width: `${fill}%`,
-              background: "#18c280",
+              background: "rgb(var(--accent-rgb))",
               boxShadow: "inset 0px -1px 3px 0px rgba(0,0,0,0.25)",
             }}
           />
@@ -426,12 +527,37 @@ function AvgMessagesRow({ active }: { active: boolean }) {
   );
 }
 
-const testerCells: { label: string; value: number; tag: string }[] = [
-  { label: "Testers - 1", value: 14, tag: "Deep" },
-  { label: "Testers - 2", value: 11, tag: "Deep" },
-  { label: "Testers - 3", value: 10, tag: "Strong" },
-  { label: "Testers - 4", value: 6, tag: "Good" },
-];
+type TestsContent = {
+  sub: string;
+  avgMessages: number;
+  avgFill: number;
+  cells: { label: string; value: number; tag: string }[];
+};
+
+const TESTS: Record<"happy" | "needsImprovement", TestsContent> = {
+  happy: {
+    sub: "In 47 tests, your AI matched your voice and method. Two categories need more training before we'd recommend going live.",
+    avgMessages: 14,
+    avgFill: 90,
+    cells: [
+      { label: "Testers - 1", value: 14, tag: "Deep" },
+      { label: "Testers - 2", value: 11, tag: "Deep" },
+      { label: "Testers - 3", value: 10, tag: "Strong" },
+      { label: "Testers - 4", value: 6, tag: "Good" },
+    ],
+  },
+  needsImprovement: {
+    sub: "In 47 tests, objection handling and common questions came up short. Train those areas before going live.",
+    avgMessages: 8,
+    avgFill: 55,
+    cells: [
+      { label: "Testers - 1", value: 9, tag: "Good" },
+      { label: "Testers - 2", value: 7, tag: "Fair" },
+      { label: "Testers - 3", value: 5, tag: "Fair" },
+      { label: "Testers - 4", value: 3, tag: "Low" },
+    ],
+  },
+};
 
 function TesterCell({
   label,
@@ -462,8 +588,8 @@ function TesterCell({
           </span>
         </div>
       </div>
-      <div className="flex items-center rounded-[24px] bg-[rgba(16,104,68,0.06)] px-1.5 py-0.5">
-        <span className="whitespace-nowrap text-xs font-medium leading-4 tracking-[-0.15px] text-[#106844]">
+      <div className="flex items-center rounded-[24px] bg-[rgb(var(--accent-deep-rgb)/0.06)] px-1.5 py-0.5">
+        <span className="whitespace-nowrap text-xs font-medium leading-4 tracking-[-0.15px] text-[color:rgb(var(--accent-deep-rgb))]">
           {tag}
         </span>
       </div>
@@ -471,9 +597,16 @@ function TesterCell({
   );
 }
 
-export function TestsCard({ gate }: { gate: boolean }) {
+export function TestsCard({
+  gate,
+  needsImprovement = false,
+}: {
+  gate: boolean;
+  needsImprovement?: boolean;
+}) {
   const { ref, inView } = useInView<HTMLDivElement>();
   const show = gate && inView;
+  const content = needsImprovement ? TESTS.needsImprovement : TESTS.happy;
   return (
     <div
       ref={ref}
@@ -482,14 +615,15 @@ export function TestsCard({ gate }: { gate: boolean }) {
     >
       <div className="flex flex-col gap-0.5">
         <p className={CARD_TITLE}>Test results</p>
-        <p className={CARD_SUB}>
-          In 47 tests, your AI matched your voice and method. Two categories need
-          more training before we&apos;d recommend going live.
-        </p>
+        <p className={CARD_SUB}>{content.sub}</p>
       </div>
-      <AvgMessagesRow active={show} />
+      <AvgMessagesRow
+        active={show}
+        target={content.avgMessages}
+        fillTarget={content.avgFill}
+      />
       <div className="grid grid-cols-2 gap-3">
-        {testerCells.map((cell, i) => (
+        {content.cells.map((cell, i) => (
           <TesterCell
             key={cell.label}
             {...cell}
@@ -498,6 +632,7 @@ export function TestsCard({ gate }: { gate: boolean }) {
           />
         ))}
       </div>
+      {needsImprovement && <KeepTrainingButton />}
     </div>
   );
 }

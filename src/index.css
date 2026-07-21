@@ -7,6 +7,18 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-synthesis: none;
+
+  /* readiness path accent tokens — the dev path selector swaps these so every
+     readiness accent (ring, bars, pills, tag, glow) rethemes at once. defaults
+     are the happy-path green. numeric readouts keep their neutral color. */
+  --accent-rgb: 24 194 128; /* brand green — bright fills (ring, bars) */
+  --accent-deep-rgb: 16 104 68; /* deep green — text, pills, labels */
+}
+
+/* non-happy path (score below 80): amber theme. */
+.path-needs-improvement {
+  --accent-rgb: 251 191 36; /* amber 400 — bright fills */
+  --accent-deep-rgb: 180 83 9; /* amber 700 — readable text on light tints */
 }
 
 * {
